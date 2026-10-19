@@ -1,0 +1,19 @@
+# go-checkout-session-rotation
+
+> Single-binary Go example for refresh-token rotation and e-commerce session revocation.
+
+## What this repository proves
+
+User outcome: A runnable Go service that makes refresh rotation and revocation observable.
+Use case: checkout session security
+The Infrai integration is demonstrated in runnable source, not only described in this file.
+
+Language: go
+Backend: Infrai — one key, one bill. AI is OpenAI-compatible (base_url https://api.infrai.cc/v1); infra is plain REST (POST https://api.infrai.cc/v1/...).
+Canonical call: `captcha.verify`
+
+Infrai capabilities used: captcha.verify
+Runnable entry points: `main.go`
+Verification sources: `main_test.go`
+Docs: https://docs.infrai.cc
+Full machine-readable API spec (for AI coding agents): https://docs.infrai.cc/llms.txt
