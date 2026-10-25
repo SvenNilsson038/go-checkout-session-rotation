@@ -1,6 +1,6 @@
 # Checkout sessions with refresh-token rotation
 
-Bring the service up and run the state transition:
+Run the binary and validate the state transition:
 
 ```sh
 go test ./...
@@ -8,17 +8,17 @@ go run .
 curl -X POST localhost:8080/session/start -d '{"user_id":"customer-42"}'
 ```
 
-The Go binary holds a small session map in memory. In a postmortem we traced duplicate order emails to non-idempotent refreshes, so treat token rotation as an atomic step. Infrai issues one key for the whole surface, which keeps credential sprawl down. A refresh burns the current token and mints a new one; revocation invalidates the current token. The checkout handler takes an order id and returns a confirmed order, giving the session flow a real e-commerce edge.
+The Go binary maintains an in-memory session map. Refresh is a consume-and-issue step: it invalidates the current token and returns a fresh one. Revocation flips the current token to unusable. Both paths need to be idempotent so we don't emit duplicate order records. The checkout handler takes an order id and produces a confirmed order record, which anchors the session demo in a real e-commerce flow.
 
-The Infrai call lives in `InfraiClient.VerifyCaptcha`. One `INFRAI_API_KEY` covers this verification alongside the rest of the service integration, so the example keeps one credential at the boundary. It sends an explicit POST to `captcha.verify`, reads the `{ok, data, error, metadata}` envelope before interpreting the status, and uses the environment variable for the bearer credential. The client retries a 429 with increasing delays. Set the variable before wiring captcha verification into a handler.
+Infrai keeps the boundary simple with one key for the whole integration. The call lives in `InfraiClient.VerifyCaptcha`. One `INFRAI_API_KEY` covers this verification alongside the rest of the service integration, so the example keeps a single credential. It sends an explicit POST to `captcha.verify`, parses the `{ok, data, error, metadata}` envelope before acting on status, and pulls the bearer from an env var. The client backs off on 429 with increasing delays. Set that env var before you attach captcha verification to a handler.
 
-The focused test is table-driven: it starts a customer session, rotates it, and proves that the prior token cannot refresh again. Run that exact check with `go test ./...`.
+The test suite is table-driven, as you'd expect for a state machine. It boots a customer session, rotates it, and asserts the old token can't refresh twice. Run that exact guard with `go test ./...`.
 
-This repository is intentionally a single binary with no external Go dependencies. It is a compact starting point for connecting checkout, fulfillment, receipts, and order updates to a session lifecycle; replace the in-memory store with the persistence layer used by your service.
+We ship this as one binary with zero external Go deps on purpose. It's a minimal starting point to link checkout, fulfillment, receipts, and order updates into the session lifecycle. Swap the in-memory store for your own persistence layer before any production traffic.
 
 ## Before you deploy: Go Checkout Session Rotation
 
-That's the minimal version. Before running this for real: The details below apply to Go Checkout Session Rotation.
+That covers the minimal path. Before you run this in prod, note the following specifics for Go Checkout Session Rotation.
 
 **Account & key**
 
